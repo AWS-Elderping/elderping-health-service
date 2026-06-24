@@ -4,7 +4,7 @@ const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = re
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 
 const awsRegion = process.env.AWS_REGION || 'us-east-1';
-const bucketName = process.env.S3_BUCKET_NAME || 'elderpinq-reports-bucket';
+const bucketName = process.env.S3_BUCKET_NAME || 'elderpinq-dev-reports-bucket';
 const kmsKeyArn = process.env.KMS_KEY_ARN;
 
 const isAwsConfigured = process.env.MOCK_AWS !== 'true' && (
