@@ -23,7 +23,6 @@ const pool = new Pool({
 const logAudit = async (req, actionType, resource, resourceId, status, message) => {
   try {
     const auditServiceUrl = process.env.AUDIT_SERVICE_URL || 'http://audit-service:3000';
-    const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
     await fetch(`${auditServiceUrl}/audit`, {
       method: 'POST',
       headers: {
