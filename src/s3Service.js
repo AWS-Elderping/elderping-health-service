@@ -89,5 +89,6 @@ module.exports = {
   uploadToS3,
   getPresignedUrl,
   deleteFromS3,
-  mockStorageDir
+  mockStorageDir,
+  bucketName
 };

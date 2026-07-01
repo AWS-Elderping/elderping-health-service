@@ -3,7 +3,7 @@ const { Pool } = require('pg');
 const cors = require('cors');
 const multer = require('multer');
 const { validateToken, checkRelationship, requirePermission } = require('./authMiddleware');
-const { uploadToS3, getPresignedUrl, deleteFromS3 } = require('./s3Service');
+const { uploadToS3, getPresignedUrl, deleteFromS3, bucketName } = require('./s3Service');
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -367,7 +367,7 @@ app.post('/documents/upload', validateToken, requirePermission('HEALTH_DOCUMENT_
     const environment = process.env.NODE_ENV || 'development';
     const cleanFileName = req.file.originalname.replace(/\s+/g, '_');
     const key = `documents/${environment}/${elderId}/${documentType.toUpperCase()}/${Date.now()}_${cleanFileName}`;
-    const bucket = process.env.S3_BUCKET_NAME || 'elderpinq-reports-bucket';
+    const bucket = bucketName;
 
     // Upload to S3 (KMS envelope encrypted)
     await uploadToS3(req.file.buffer, key, req.file.mimetype);
