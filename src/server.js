@@ -308,6 +308,19 @@ const verifyDocumentOwnership = async (req, res, next) => {
       }
     }
 
+    // Doctor relationship check
+    if (role === 'DOCTOR') {
+      const authServiceUrl = process.env.AUTH_SERVICE_URL || 'http://auth-service:3000';
+      const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+      const response = await fetch(`${authServiceUrl}/doctor-links/verify/${userId}/${doc.elder_id}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.linked) {
+          return next();
+        }
+      }
+    }
+
     return res.status(403).json({ error: 'Forbidden: Access denied' });
   } catch (error) {
     console.error('verifyDocumentOwnership error:', error.message);
@@ -339,6 +352,14 @@ app.post('/documents/upload', validateToken, requirePermission('HEALTH_DOCUMENT_
       const authServiceUrl = process.env.AUTH_SERVICE_URL || 'http://auth-service:3000';
       const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
       const response = await fetch(`${authServiceUrl}/links/verify/${userId}/${elderId}`);
+      if (response.ok) {
+        const data = await response.json();
+        allowed = data.linked;
+      }
+    } else if (role === 'DOCTOR') {
+      const authServiceUrl = process.env.AUTH_SERVICE_URL || 'http://auth-service:3000';
+      const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+      const response = await fetch(`${authServiceUrl}/doctor-links/verify/${userId}/${elderId}`);
       if (response.ok) {
         const data = await response.json();
         allowed = data.linked;
@@ -733,7 +754,67 @@ app.get('/documents/mock-download', async (req, res) => {
   }
 });
 
+// ──────────────────────────────────────────────
+// SCHEMA BOOTSTRAP — idempotent, runs on every startup
+// ──────────────────────────────────────────────
+async function initDb() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS health_logs (
+      id                    SERIAL PRIMARY KEY,
+      user_id               INT NOT NULL,
+      checkin_status        VARCHAR(50),
+      heart_rate            INT,
+      blood_pressure        VARCHAR(20),
+      blood_sugar           NUMERIC(6,2),
+      oxygen_saturation     NUMERIC(5,2),
+      temperature_celsius   NUMERIC(5,2),
+      weight_kg             NUMERIC(6,2),
+      bmi                   NUMERIC(5,2),
+      mood_rating           INT,
+      mobility_steps        INT,
+      health_risk_score     VARCHAR(20) DEFAULT 'LOW',
+      logged_at             TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS health_logs_user_id_idx ON health_logs (user_id)');
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS medical_documents (
+      id              SERIAL PRIMARY KEY,
+      elder_id        INT NOT NULL,
+      document_type   VARCHAR(50) NOT NULL,
+      file_name       VARCHAR(500) NOT NULL,
+      s3_bucket       VARCHAR(200) NOT NULL,
+      s3_key          VARCHAR(1000) NOT NULL,
+      uploaded_by     INT NOT NULL,
+      uploaded_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS medical_documents_elder_id_idx ON medical_documents (elder_id)');
+
+  console.log('Database schema ready (health_logs, medical_documents).');
+}
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Health service running on port ${PORT}`);
-});
+
+async function start() {
+  let retries = 10;
+  while (retries--) {
+    try {
+      await pool.query('SELECT 1');
+      console.log('Connected to database successfully.');
+      break;
+    } catch (err) {
+      console.log(`Waiting for database... (${retries} retries left) error: ${err.message}`);
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+  }
+
+  await initDb();
+
+  app.listen(PORT, () => {
+    console.log(`Health service running on port ${PORT}`);
+  });
+}
+
+start();
