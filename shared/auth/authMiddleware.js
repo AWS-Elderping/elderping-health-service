@@ -197,7 +197,6 @@ const checkRelationship = (elderIdParam = 'elderId') => {
     if (role === 'DOCTOR') {
       try {
         const authServiceUrl = process.env.AUTH_SERVICE_URL || 'http://auth-service:3000';
-        const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
         const response = await fetch(`${authServiceUrl}/doctor-links/verify/${userId}/${elderId}`);
         if (response.ok) {
           const data = await response.json();

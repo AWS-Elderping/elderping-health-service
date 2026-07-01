@@ -183,7 +183,6 @@ app.post('/vitals', validateToken, checkRelationship('userId'), async (req, res)
     if (riskLevel === 'HIGH' || riskLevel === 'CRITICAL') {
       try {
         const notifServiceUrl = process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:3000';
-        const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
         await fetch(`${notifServiceUrl}/notifications/trigger`, {
           method: 'POST',
           headers: {
@@ -246,7 +245,6 @@ app.get('/vitals/trends/:userId', validateToken, checkRelationship('userId'), as
     let adherenceStats = { weeklyAdherence: null, monthlyAdherence: null, overallAdherence: null };
     try {
       const reminderServiceUrl = process.env.REMINDER_SERVICE_URL || 'http://reminder-service:3000';
-      const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
       const response = await fetch(`${reminderServiceUrl}/compliance/stats/${userId}`, {
         headers: { 'Authorization': req.headers.authorization }
       });
@@ -298,7 +296,6 @@ const verifyDocumentOwnership = async (req, res, next) => {
     // Caregiver relationship check
     if (role === 'CAREGIVER' || role === 'FAMILY') {
       const authServiceUrl = process.env.AUTH_SERVICE_URL || 'http://auth-service:3000';
-      const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
       const response = await fetch(`${authServiceUrl}/links/verify/${userId}/${doc.elder_id}`);
       if (response.ok) {
         const data = await response.json();
@@ -311,7 +308,6 @@ const verifyDocumentOwnership = async (req, res, next) => {
     // Doctor relationship check
     if (role === 'DOCTOR') {
       const authServiceUrl = process.env.AUTH_SERVICE_URL || 'http://auth-service:3000';
-      const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
       const response = await fetch(`${authServiceUrl}/doctor-links/verify/${userId}/${doc.elder_id}`);
       if (response.ok) {
         const data = await response.json();
@@ -350,7 +346,6 @@ app.post('/documents/upload', validateToken, requirePermission('HEALTH_DOCUMENT_
       allowed = String(userId) === String(elderId);
     } else if (role === 'CAREGIVER' || role === 'FAMILY') {
       const authServiceUrl = process.env.AUTH_SERVICE_URL || 'http://auth-service:3000';
-      const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
       const response = await fetch(`${authServiceUrl}/links/verify/${userId}/${elderId}`);
       if (response.ok) {
         const data = await response.json();
@@ -358,7 +353,6 @@ app.post('/documents/upload', validateToken, requirePermission('HEALTH_DOCUMENT_
       }
     } else if (role === 'DOCTOR') {
       const authServiceUrl = process.env.AUTH_SERVICE_URL || 'http://auth-service:3000';
-      const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
       const response = await fetch(`${authServiceUrl}/doctor-links/verify/${userId}/${elderId}`);
       if (response.ok) {
         const data = await response.json();
